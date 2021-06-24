@@ -20,8 +20,8 @@
 
             #include "UnityCG.cginc"
 
-            #define MAX_STEPS 10000
-            #define MAX_DIST 10
+            #define MAX_STEPS 100
+            #define MAX_DIST 100
             #define SURF_DIST 0.00001
             #define PI 3.14159
 
@@ -37,10 +37,13 @@
                 float4 vertex : SV_POSITION;
                 float3 rayOrigin : TEXCOORD1;
                 float3 hitPos : TEXCOORD2;
+				float4 screenPos : TEXCOORD3;
             };
 
             sampler2D _MainTex;
             float4 _MainTex_ST;
+
+			sampler2D _CameraDepthTexture;
 
             float _SphereRadius;
             float _MovementRadius;
@@ -52,6 +55,7 @@
                 o.uv = TRANSFORM_TEX(v.uv, _MainTex);
                 o.rayOrigin = mul(unity_WorldToObject, float4(_WorldSpaceCameraPos, 1));
                 o.hitPos = v.vertex;
+				o.screenPos = ComputeScreenPos(o.vertex);
                 return o;
             }
 
@@ -113,16 +117,24 @@
 
                 float d = Raymarch(rayOrigin, rayDirection);
 
-                fixed4 col = 0;
+				float2 screenUV = i.screenPos.xy / i.screenPos.w;
+				float depth = tex2D(_CameraDepthTexture, screenUV).r;
 
-                if (d < MAX_DIST) {
+                fixed4 col = 1;
+
+				/*
+                if (d < MAX_DIST && d < depth) {
                     float3 p = rayOrigin + rayDirection * d;
                     float3 normal = GetNormal(p);
                     col.rgb = normal;
-                    col.a = d - length(i.hitPos - rayOrigin);
+					col.a = 1;
+                    //col.a = d - length(i.hitPos - rayOrigin);
                 }
                 else
                     discard;
+				*/
+
+				col.rgb = depth;
 
                 return col;
             }
